@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>BBFS Generator Grid 2D–6D — Shio & Ekor</title>
+<style>
+  :root{--bg:#f3f4f6;--card:#fff;--accent:#2563eb;--muted:#6b7280}
+  body{font-family:Inter,Segoe UI,system-ui,Arial,sans-serif;background:var(--bg);margin:0;padding:20px;color:#0f172a}
+  .wrap{max-width:1150px;margin:0 auto;background:var(--card);border-radius:12px;padding:18px;box-shadow:0 8px 30px rgba(2,6,23,0.08)}
+  h1{margin:0 0 8px;font-size:20px}
+  .grid{display:grid;grid-template-columns:1fr 480px;gap:18px}
+  label{display:block;font-weight:700;margin-bottom:6px;font-size:13px}
+  input[type="text"], select, textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #d1d5db;font-size:15px;box-sizing:border-box}
+  textarea{min-height:110px;resize:vertical}
+  .row{display:flex;gap:10px}
+  .btn{background:var(--accent);color:#fff;padding:10px 12px;border-radius:8px;border:none;cursor:pointer;font-weight:700}
+  .btn.secondary{background:#111827}
+  .tabs{display:flex;gap:6px;margin-top:14px;border-bottom:1px solid #e6eef8;padding-bottom:8px}
+  .tab{padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700;background:transparent;color:var(--muted)}
+  .tab.active{background:linear-gradient(90deg,#eef2ff,#e6f0ff);color:#0b2b6b}
+  .controls{display:flex;gap:8px;margin-top:8px}
+  .meta{font-size:13px;color:var(--muted);margin-bottom:8px}
+  .results-pre{background:#fbfdff;border-radius:8px;padding:10px;font-family:monospace;font-size:14px;white-space:pre;overflow:auto;max-height:420px}
+  .grid-table{width:100%;border-collapse:collapse;font-family:monospace;font-size:14px}
+  .grid-row{display:flex;gap:12px;align-items:flex-start}
+  .grid-number{width:42px;flex:0 0 42px;font-weight:800}
+  .grid-cells{display:flex;gap:12px;flex-wrap:wrap}
+  .grid-cell{min-width:0;padding:6px 8px;background:#fff;border-radius:6px;border:1px solid #eef2ff;}
+  .small{font-size:13px;color:var(--muted)}
+  .hint{font-size:13px;color:#334155;margin-top:8px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🎲 BBFS Generator Grid 2D–6D — (Shio & Ekor berlaku di semua D)</h1>
+    <div class="grid">
+      <div>
+        <label for="bbfs">Masukkan Angka BBFS (2–9 digit)</label>
+        <input id="bbfs" maxlength="9" placeholder="contoh: 123456789">
+
+        <label for="angkaMain" style="margin-top:12px">Angka Main (pemangkasan otomatis) — setiap baris 1 item (max 20 baris; tiap baris max 8 digit)</label>
+        <textarea id="angkaMain" placeholder="Contoh:
+37
+91
+245"></textarea>
+        <div class="small">Setiap baris baru (Enter) memicu pemangkasan otomatis.</div>
+
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <div style="flex:1">
+            <label for="ekorOn">Filter Ekor ON (pisahkan koma jika lebih dari 1)</label>
+            <input id="ekorOn" placeholder="contoh: 5 atau 5,7">
+          </div>
+          <div style="width:160px">
+            <label for="shio">Filter Shio (sisa %12)</label>
+            <select id="shio">
+              <option value="">SEMUA</option>
+              <option value="0">Sisa 0</option><option value="1">Sisa 1</option>
+              <option value="2">Sisa 2</option><option value="3">Sisa 3</option>
+              <option value="4">Sisa 4</option><option value="5">Sisa 5</option>
+              <option value="6">Sisa 6</option><option value="7">Sisa 7</option>
+              <option value="8">Sisa 8</option><option value="9">Sisa 9</option>
+              <option value="10">Sisa 10</option><option value="11">Sisa 11</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="btn" id="genBtn">🔢 Generate</button>
+          <button class="btn secondary" id="resetBtn">♻️ Reset</button>
+        </div>
+
+        <div class="hint">Tips: gunakan Angka Main, Ekor ON, dan Shio untuk memangkas hasil. 6D bisa sangat besar — hati-hati.</div>
+      </div>
+
+      <div>
+        <div class="tabs" id="tabs">
+          <div class="tab active" data-tab="2">2D</div>
+          <div class="tab" data-tab="3">3D</div>
+          <div class="tab" data-tab="4">4D</div>
+          <div class="tab" data-tab="5">5D</div>
+          <div class="tab" data-tab="6">6D</div>
+        </div>
+
+        <div style="margin-top:10px" class="meta" id="meta">Belum ada hasil.</div>
+
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <input id="search" placeholder="Cari di tab aktif..." style="padding:8px;border-radius:8px;border:1px solid #d1d5db;flex:1">
+          <button class="btn" id="copyBtn">📋 Salin</button>
+          <button class="btn secondary" id="downloadBtn">⬇️ Unduh (.txt)</button>
+        </div>
+
+        <div id="tabArea" class="results-pre">
+          <!-- grid tampil di sini -->
+          <div id="contentPlaceholder" class="small">Hasil akan muncul di sini setelah Generate.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* Final implementation:
+ - grid columns per D: colsMap
+ - shio uses last 2 digits (or full 2-digit for 2D) -> %12
+ - generate with replacement (order lexicographic), filtered by angkaMain, ekor, shio
+ - display grid with numbered rows and columns; copy & download produce same numbered rows text
+*/
+
+const colsMap = {2:10, 3:6, 4:5, 5:4, 6:3};
+const LIMITS = {2:100,3:1000,4:10000,5:100000,6:Infinity};
+
+const bbfsEl = document.getElementById('bbfs');
+const angkaMainEl = document.getElementById('angkaMain');
+const ekorEl = document.getElementById('ekorOn');
+const shioEl = document.getElementById('shio');
+const genBtn = document.getElementById('genBtn');
+const resetBtn = document.getElementById('resetBtn');
+const tabs = document.getElementById('tabs');
+const meta = document.getElementById('meta');
+const tabArea = document.getElementById('tabArea');
+const searchEl = document.getElementById('search');
+const copyBtn = document.getElementById('copyBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+
+let RESULTS = {2:[],3:[],4:[],5:[],6:[]};
+let ACTIVE = '2';
+
+function sanitizeDigits(s){ return (s||'').replace(/[^0-9]/g,''); }
+
+function parseAngkaMain(){
+  let arr = (angkaMainEl.value||'').replace(/\r/g,'').split('\n').map(s=>s.trim()).filter(Boolean);
+  if (arr.length > 20){ arr = arr.slice(0,20); angkaMainEl.value = arr.join('\n'); }
+  arr = arr.map(x => sanitizeDigits(x).slice(0,8)).filter(Boolean);
+  if (arr.join('\n') !== angkaMainEl.value.replace(/\r/g,'')){ angkaMainEl.value = arr.join('\n'); }
+  return arr;
+}
+
+function parseEkor(){
+  const raw = (ekorEl.value||'').replace(/[^\d,]/g,'').split(',').map(s=>s.trim()).filter(Boolean);
+  const digits = [];
+  for (let r of raw){
+    r = r.replace(/\D/g,'');
+    for (let ch of r) if (!digits.includes(ch)) digits.push(ch);
+  }
+  return digits;
+}
+
+// Filter function: exclude any that contain angkaMain substrings; enforce ekor endings if provided; enforce shio based on 2 last digits %12
+function makeFilter(angkaMainArr, ekorArr, shioVal){
+  return function(s, n){
+    // angkaMain trimming
+    for (let am of angkaMainArr) if (am && s.includes(am)) return false;
+    // ekor ON
+    if (ekorArr.length > 0 && !ekorArr.includes(s[s.length-1])) return false;
+    // shio: take last two digits (for n>=2) or the full s when n==2
+    if (shioVal !== ''){
+      let lastTwo = s.slice(-2);
+      if (lastTwo.length < 2) lastTwo = s; // safety
+      const num = parseInt(lastTwo, 10);
+      if (isNaN(num) || (num % 12) !== parseInt(shioVal,10)) return false;
+    }
+    return true;
+  };
+}
+
+// generate with replacement lexicographic, but stop when maxKeep reached
+function generateWithReplacement(digits, n, maxKeep, filterFn){
+  const k = digits.length;
+  if (k===0) return [];
+  const total = Math.pow(k, n);
+  const out = [];
+  let kept = 0;
+  for (let idx=0; idx<total; idx++){
+    let i = idx; let s = '';
+    for (let p=0;p<n;p++){ s = digits[i % k] + s; i = Math.floor(i / k); }
+    if (filterFn && !filterFn(s, n)) continue;
+    out.push(s);
+    kept++;
+    if (kept >= maxKeep) break;
+  }
+  return out;
+}
+
+function buildAll(){
+  const raw = sanitizeDigits(bbfsEl.value);
+  if (raw.length < 2){ alert('Masukkan minimal 2 digit pada BBFS.'); return; }
+  if (raw.length > 9){ alert('Maksimal 9 digit pada BBFS.'); return; }
+  const digits = Array.from(new Set(raw.split('')));
+  const angkaMainArr = parseAngkaMain();
+  const ekorArr = parseEkor();
+  const shioVal = shioEl.value;
+
+  const filterFn = makeFilter(angkaMainArr, ekorArr, shioVal);
+
+  for (let n=2; n<=6; n++){
+    const limit = LIMITS[n];
+    const maxNeed = limit === Infinity ? Math.pow(digits.length, n) : limit;
+    const arr = generateWithReplacement(digits, n, maxNeed, filterFn);
+    RESULTS[n] = Array.from(new Set(arr)).slice(0, limit === Infinity ? arr.length : limit);
+  }
+  renderActive();
+}
+
+function formatRowCells(arr, cols){
+  // returns array of lines (strings) each line is numbered and contains cols cells separated by 3 spaces
+  const lines = [];
+  let rowIndex = 0;
+  for (let i=0; i< arr.length; i += cols){
+    rowIndex++;
+    const slice = arr.slice(i, i+cols);
+    const cells = slice.map(s=>{
+      const rev = s.split('').reverse().join('');
+      return (rev !== s) ? `${s}*${rev}` : `${s}`;
+    });
+    const left = `${rowIndex}. `;
+    lines.push(left + cells.join('   '));
+  }
+  return lines;
+}
+
+function renderActive(){
+  const n = parseInt(ACTIVE,10);
+  const arr = RESULTS[n] || [];
+  const cols = colsMap[n] || 4;
+  meta.textContent = `Menampilkan ${arr.length} biji (tab ${n}D) — kolom: ${cols}`;
+  // apply search filter
+  const q = (searchEl.value||'').trim();
+  const filtered = q ? arr.filter(s=> s.includes(q)) : arr;
+  if (filtered.length === 0){ tabArea.innerHTML = '<div class="small">(tidak ada hasil)</div>'; return; }
+  // build UI grid: rows with number + cells
+  const container = document.createElement('div');
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '8px';
+  const rows = [];
+  for (let i=0; i<filtered.length; i += cols){
+    const rowNum = Math.floor(i/cols) + 1;
+    const slice = filtered.slice(i, i+cols);
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'grid-row';
+    const numDiv = document.createElement('div');
+    numDiv.className = 'grid-number';
+    numDiv.textContent = rowNum + '.';
+    const cellsDiv = document.createElement('div');
+    cellsDiv.className = 'grid-cells';
+    slice.forEach(s=>{
+      const rev = s.split('').reverse().join('');
+      const text = (rev !== s) ? `${s}*${rev}` : s;
+      const cell = document.createElement('div');
+      cell.className = 'grid-cell';
+      cell.textContent = text;
+      cellsDiv.appendChild(cell);
+    });
+    rowDiv.appendChild(numDiv);
+    rowDiv.appendChild(cellsDiv);
+    container.appendChild(rowDiv);
+  }
+  tabArea.innerHTML = '';
+  tabArea.appendChild(container);
+}
+
+// tab switching
+tabs.addEventListener('click', (ev)=>{
+  const t = ev.target.closest('.tab'); if(!t) return;
+  const sel = t.dataset.tab;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  ACTIVE = sel;
+  renderActive();
+});
+
+// copy: copy displayed grid text
+copyBtn.addEventListener('click', ()=>{
+  const n = parseInt(ACTIVE,10);
+  const arr = RESULTS[n] || [];
+  const cols = colsMap[n] || 4;
+  const q = (searchEl.value||'').trim();
+  const filtered = q ? arr.filter(s=> s.includes(q)) : arr;
+  if (filtered.length === 0){ alert('Tidak ada hasil untuk disalin.'); return; }
+  const lines = formatRowCells(filtered, cols);
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text).then(()=> alert(`Hasil ${n}D (grid) disalin ke clipboard.`)).catch(()=> alert('Gagal menyalin ke clipboard.'));
+});
+
+// download per-tab: produce numbered rows, each row holds cols cells, take all available (after filtering/pemangkasan)
+downloadBtn.addEventListener('click', ()=>{
+  const n = parseInt(ACTIVE,10);
+  const arr = RESULTS[n] || [];
+  const cols = colsMap[n] || 4;
+  const q = (searchEl.value||'').trim();
+  const filtered = q ? arr.filter(s=> s.includes(q)) : arr;
+  if (filtered.length === 0){ alert('Tidak ada hasil untuk diunduh.'); return; }
+  const lines = formatRowCells(filtered, cols);
+  const filename = `bbfs_${n}d_grid.txt`;
+  const blob = new Blob([lines.join('\n')], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  alert(`File ${filename} dibuat (mengandung ${lines.length} baris).`);
+});
+
+// search
+searchEl.addEventListener('input', ()=> renderActive());
+
+// generate & reset
+genBtn.addEventListener('click', buildAll);
+resetBtn.addEventListener('click', ()=>{
+  bbfsEl.value=''; angkaMainEl.value=''; ekorEl.value=''; shioEl.value=''; searchEl.value=''; tabArea.innerHTML = '<div class="small">Hasil akan muncul di sini setelah Generate.</div>'; meta.textContent = 'Belum ada hasil.'; RESULTS = {2:[],3:[],4:[],5:[],6:[]};
+});
+
+// auto process when angkaMain changed or ekor/shio change (debounced)
+let dt=null;
+function debounceBuild(){ clearTimeout(dt); dt = setTimeout(()=>{ parseAngkaMain(); buildAll(); },300); }
+angkaMainEl.addEventListener('input', debounceBuild);
+ekorEl.addEventListener('input', debounceBuild);
+shioEl.addEventListener('change', buildAll);
+bbfsEl.addEventListener('input', ()=> bbfsEl.value = sanitizeDigits(bbfsEl.value).slice(0,9));
+
+</script>
+</body>
+</html>
