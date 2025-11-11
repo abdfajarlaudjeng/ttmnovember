@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="id">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalkulator Prediksi Angka</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    html {
+      height: 100%;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="min-h-full">
+  <div id="app" class="min-h-full p-6">
+   <div class="max-w-4xl mx-auto"><!-- Header -->
+    <div class="text-center mb-8">
+     <h1 id="main-title" class="text-4xl font-bold mb-2">Kalkulator Prediksi Angka</h1>
+     <p id="subtitle" class="text-lg">Hitung prediksi berdasarkan rumus mistik</p>
+    </div><!-- Input Form -->
+    <div class="rounded-lg shadow-lg p-6 mb-6">
+     <h2 class="text-2xl font-semibold mb-4">Input Data</h2>
+     <form id="input-form" class="space-y-4">
+      <div><label for="tanggal" class="block text-sm font-medium mb-1">Tanggal Pengeluaran Kemarin</label> <input type="date" id="tanggal" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none">
+      </div>
+      <div><label for="angka-keluar" class="block text-sm font-medium mb-1">Angka Keluar (4 digit, contoh: 1272)</label> <input type="text" id="angka-keluar" required pattern="[0-9]{4}" maxlength="4" placeholder="1272" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none">
+      </div><button type="submit" id="hitung-btn" class="w-full px-6 py-3 rounded-lg font-semibold transition-colors"> Hitung Prediksi </button>
+     </form>
+    </div><!-- Loading State -->
+    <div id="loading" class="hidden text-center py-8">
+     <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2"></div>
+     <p class="mt-4 text-lg">Menghitung prediksi...</p>
+    </div><!-- Results -->
+    <div id="hasil" class="hidden">
+     <div class="rounded-lg shadow-lg p-6 mb-6">
+      <h2 class="text-2xl font-semibold mb-4">Hasil Perhitungan</h2>
+      <div class="space-y-4">
+       <div class="p-4 rounded-lg">
+        <h3 class="font-semibold mb-2">Konversi Mistik</h3>
+        <div class="grid grid-cols-2 gap-2 text-sm">
+         <div>
+          AS: <span id="as-result" class="font-mono"></span>
+         </div>
+         <div>
+          KOP: <span id="kop-result" class="font-mono"></span>
+         </div>
+         <div>
+          KEPALA: <span id="kepala-result" class="font-mono"></span>
+         </div>
+         <div>
+          EKOR: <span id="ekor-result" class="font-mono"></span>
+         </div>
+        </div>
+       </div>
+       <div class="p-4 rounded-lg">
+        <h3 class="font-semibold mb-2">Ring Angka Mati</h3>
+        <div class="space-y-2 text-sm">
+         <div>
+          Ring Pertama: <span id="ring1" class="font-mono font-bold"></span>
+         </div>
+         <div>
+          Ring Kedua: <span id="ring2" class="font-mono font-bold"></span>
+         </div>
+        </div>
+       </div>
+       <div class="p-4 rounded-lg">
+        <h3 class="font-semibold mb-2">Angka Hidup</h3>
+        <div class="text-sm">
+         <div id="angka-hidup" class="font-mono font-bold text-lg"></div>
+         <div class="mt-2">
+          Kepala: <span id="kepala-hidup" class="font-mono font-bold"></span>
+         </div>
+         <div>
+          85% Keluar: <span id="kepala-prioritas" class="font-mono font-bold"></span>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+     <div class="rounded-lg shadow-lg p-6 mb-6">
+      <h2 class="text-2xl font-semibold mb-4">Pola Kepala 2D</h2>
+      <div id="pola-2d" class="space-y-2 text-sm font-mono"></div>
+     </div><button id="simpan-btn" class="w-full px-6 py-3 rounded-lg font-semibold transition-colors mb-4"> Simpan Hasil </button>
+    </div><!-- History -->
+    <div id="history-section" class="rounded-lg shadow-lg p-6">
+     <h2 class="text-2xl font-semibold mb-4">Riwayat Perhitungan</h2>
+     <div id="history-list" class="space-y-3"></div>
+     <div id="empty-history" class="text-center py-8">
+      <p class="text-lg">Belum ada riwayat perhitungan</p>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    const mistikLama = {
+      '0': '8', '1': '0', '2': '5', '3': '8', '4': '7',
+      '5': '6', '6': '9', '7': '1', '8': '3', '9': '4'
+    };
+
+    const mistikBaru = {
+      '0': '8', '1': '7', '2': '6', '3': '9', '4': '5',
+      '5': '4', '6': '2', '7': '1', '8': '0', '9': '3'
+    };
+
+    const defaultConfig = {
+      background_color: '#f0f4f8',
+      card_color: '#ffffff',
+      primary_color: '#2563eb',
+      text_color: '#1e293b',
+      accent_color: '#10b981',
+      font_family: 'system-ui',
+      font_size: 16,
+      app_title: 'Kalkulator Prediksi Angka',
+      subtitle_text: 'Hitung prediksi berdasarkan rumus mistik'
+    };
+
+    let currentRecordCount = 0;
+    let currentResult = null;
+
+    async function onConfigChange(config) {
+      const bgColor = config.background_color || defaultConfig.background_color;
+      const cardColor = config.card_color || defaultConfig.card_color;
+      const primaryColor = config.primary_color || defaultConfig.primary_color;
+      const textColor = config.text_color || defaultConfig.text_color;
+      const accentColor = config.accent_color || defaultConfig.accent_color;
+      const fontFamily = config.font_family || defaultConfig.font_family;
+      const fontSize = config.font_size || defaultConfig.font_size;
+      const appTitle = config.app_title || defaultConfig.app_title;
+      const subtitleText = config.subtitle_text || defaultConfig.subtitle_text;
+
+      document.body.style.backgroundColor = bgColor;
+      document.body.style.color = textColor;
+      document.body.style.fontFamily = `${fontFamily}, system-ui, sans-serif`;
+      document.body.style.fontSize = `${fontSize}px`;
+
+      document.getElementById('main-title').textContent = appTitle;
+      document.getElementById('main-title').style.fontSize = `${fontSize * 2}px`;
+      document.getElementById('main-title').style.color = textColor;
+
+      document.getElementById('subtitle').textContent = subtitleText;
+      document.getElementById('subtitle').style.fontSize = `${fontSize * 1.125}px`;
+      document.getElementById('subtitle').style.color = textColor;
+
+      const cards = document.querySelectorAll('#app > div > div');
+      cards.forEach(card => {
+        card.style.backgroundColor = cardColor;
+        card.style.color = textColor;
+      });
+
+      const headings = document.querySelectorAll('h2, h3');
+      headings.forEach(h => h.style.color = textColor);
+
+      const inputs = document.querySelectorAll('input');
+      inputs.forEach(input => {
+        input.style.borderColor = primaryColor;
+        input.style.color = textColor;
+      });
+
+      const hitungBtn = document.getElementById('hitung-btn');
+      hitungBtn.style.backgroundColor = primaryColor;
+      hitungBtn.style.color = '#ffffff';
+
+      const simpanBtn = document.getElementById('simpan-btn');
+      if (simpanBtn) {
+        simpanBtn.style.backgroundColor = accentColor;
+        simpanBtn.style.color = '#ffffff';
+      }
+
+      const resultBoxes = document.querySelectorAll('#hasil .p-4');
+      resultBoxes.forEach(box => {
+        box.style.backgroundColor = bgColor;
+        box.style.color = textColor;
+      });
+
+      const loadingSpinner = document.querySelector('#loading .border-b-2');
+      if (loadingSpinner) {
+        loadingSpinner.style.borderColor = primaryColor;
+      }
+    }
+
+    function hitungPrediksi(angkaKeluar) {
+      const as = angkaKeluar[0];
+      const kop = angkaKeluar[1];
+      const kepala = angkaKeluar[2];
+      const ekor = angkaKeluar[3];
+
+      const asHasil = as;
+      const kopHasil = mistikLama[kop];
+      const kepalaHasil = mistikLama[kepala];
+      const ekorHasil = mistikBaru[ekor];
+
+      const ring1Awal = parseInt(asHasil + ekorHasil);
+      const ring1Akhir = ring1Awal + 25;
+      const ring2Awal = parseInt(kopHasil + kepalaHasil);
+      const ring2Akhir = ring2Awal + 30;
+
+      const angkaHidup1 = `${ring1Akhir} s/d ${ring2Awal}`;
+      const angkaHidup2 = `${ring2Akhir} s/d ${ring1Awal}`;
+
+      const kepalaAngka = [
+        parseInt(kepalaHasil),
+        (parseInt(kepalaHasil) + 1) % 10,
+        (parseInt(ekorHasil)),
+        (parseInt(ekorHasil) + 1) % 10,
+        (parseInt(ekorHasil) + 2) % 10,
+        (parseInt(ekorHasil) + 3) % 10
+      ];
+
+      const kepalaPrioritas = [
+        parseInt(kepalaHasil),
+        (parseInt(kepalaHasil) + 1) % 10,
+        (parseInt(kepalaHasil) + 2) % 10,
+        (parseInt(kepalaHasil) + 3) % 10
+      ];
+
+      return {
+        as: `${as} → ${asHasil}`,
+        kop: `${kop} → ${kopHasil}`,
+        kepala: `${kepala} → ${kepalaHasil}`,
+        ekor: `${ekor} → ${ekorHasil}`,
+        ring1: `${ring1Awal} s/d ${ring1Akhir}`,
+        ring2: `${ring2Awal} s/d ${ring2Akhir}`,
+        angkaHidup: `${angkaHidup1} dan ${angkaHidup2}`,
+        kepalaHidup: kepalaAngka.join(', '),
+        kepalaPrioritas: kepalaPrioritas.join(', '),
+        kepalaHasilNum: parseInt(kepalaHasil),
+        ekorHasilNum: parseInt(ekorHasil)
+      };
+    }
+
+    function hitungPola2D(kepalaNum, ekorNum) {
+      const pola = [];
+      let currentKepala = kepalaNum;
+      let currentEkor = ekorNum;
+
+      const jumlahPasang = [4, 5, 6, 7, 8, 9];
+
+      for (let baris = 0; baris < 6; baris++) {
+        const barisAngka = [];
+        for (let i = 0; i < jumlahPasang[baris]; i++) {
+          const angka2D = `${currentKepala}${currentEkor}`;
+          barisAngka.push(angka2D);
+          currentKepala = (currentKepala + 1) % 10;
+          currentEkor = (currentEkor + 1) % 10;
+        }
+        pola.push(barisAngka);
+      }
+
+      return pola;
+    }
+
+    function tampilkanHasil(hasil) {
+      document.getElementById('as-result').textContent = hasil.as;
+      document.getElementById('kop-result').textContent = hasil.kop;
+      document.getElementById('kepala-result').textContent = hasil.kepala;
+      document.getElementById('ekor-result').textContent = hasil.ekor;
+      document.getElementById('ring1').textContent = hasil.ring1;
+      document.getElementById('ring2').textContent = hasil.ring2;
+      document.getElementById('angka-hidup').textContent = hasil.angkaHidup;
+      document.getElementById('kepala-hidup').textContent = hasil.kepalaHidup;
+      document.getElementById('kepala-prioritas').textContent = hasil.kepalaPrioritas;
+
+      const pola2D = hitungPola2D(hasil.kepalaHasilNum, hasil.ekorHasilNum);
+      const pola2DDiv = document.getElementById('pola-2d');
+      pola2DDiv.innerHTML = '';
+
+      pola2D.forEach((baris, index) => {
+        const barisDiv = document.createElement('div');
+        barisDiv.className = 'p-2 rounded';
+        barisDiv.style.backgroundColor = window.elementSdk?.config?.background_color || defaultConfig.background_color;
+        barisDiv.innerHTML = `<strong>Baris ${index + 1}:</strong> ${baris.join(' ')}`;
+        pola2DDiv.appendChild(barisDiv);
+      });
+
+      document.getElementById('hasil').classList.remove('hidden');
+    }
+
+    function renderHistory(data) {
+      const historyList = document.getElementById('history-list');
+      const emptyHistory = document.getElementById('empty-history');
+
+      if (data.length === 0) {
+        historyList.innerHTML = '';
+        emptyHistory.classList.remove('hidden');
+        return;
+      }
+
+      emptyHistory.classList.add('hidden');
+      historyList.innerHTML = '';
+
+      const sortedData = [...data].sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+      );
+
+      sortedData.forEach(record => {
+        const item = document.createElement('div');
+        item.className = 'p-4 rounded-lg border';
+        item.style.backgroundColor = window.elementSdk?.config?.card_color || defaultConfig.card_color;
+        item.style.borderColor = window.elementSdk?.config?.primary_color || defaultConfig.primary_color;
+        
+        const tanggal = new Date(record.tanggal).toLocaleDateString('id-ID');
+        
+        item.innerHTML = `
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <div class="font-semibold">${tanggal}</div>
+              <div class="text-sm">Angka: ${record.angka_keluar}</div>
+            </div>
+            <button class="px-3 py-1 rounded text-sm delete-btn" data-id="${record.__backendId}">
+              Hapus
+            </button>
+          </div>
+          <div class="text-sm space-y-1">
+            <div>Angka Mati: ${record.angka_mati_1}, ${record.angka_mati_2}</div>
+            <div>Angka Hidup: ${record.angka_hidup}</div>
+          </div>
+        `;
+
+        const deleteBtn = item.querySelector('.delete-btn');
+        deleteBtn.style.backgroundColor = window.elementSdk?.config?.text_color || defaultConfig.text_color;
+        deleteBtn.style.color = window.elementSdk?.config?.card_color || defaultConfig.card_color;
+
+        deleteBtn.addEventListener('click', async () => {
+          deleteBtn.disabled = true;
+          deleteBtn.textContent = 'Menghapus...';
+          
+          const result = await window.dataSdk.delete(record);
+          if (!result.isOk) {
+            deleteBtn.disabled = false;
+            deleteBtn.textContent = 'Hapus';
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'text-sm mt-2';
+            errorMsg.style.color = '#ef4444';
+            errorMsg.textContent = 'Gagal menghapus data';
+            item.appendChild(errorMsg);
+            setTimeout(() => errorMsg.remove(), 3000);
+          }
+        });
+
+        historyList.appendChild(item);
+      });
+    }
+
+    const dataHandler = {
+      onDataChanged(data) {
+        currentRecordCount = data.length;
+        renderHistory(data);
+      }
+    };
+
+    document.getElementById('input-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const tanggal = document.getElementById('tanggal').value;
+      const angkaKeluar = document.getElementById('angka-keluar').value;
+
+      if (angkaKeluar.length !== 4 || !/^\d{4}$/.test(angkaKeluar)) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'p-3 rounded-lg mt-4 text-center';
+        errorDiv.style.backgroundColor = '#fee2e2';
+        errorDiv.style.color = '#991b1b';
+        errorDiv.textContent = 'Angka harus 4 digit!';
+        document.getElementById('input-form').appendChild(errorDiv);
+        setTimeout(() => errorDiv.remove(), 3000);
+        return;
+      }
+
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('hasil').classList.add('hidden');
+
+      setTimeout(() => {
+        currentResult = hitungPrediksi(angkaKeluar);
+        currentResult.tanggal = tanggal;
+        currentResult.angkaKeluar = angkaKeluar;
+        
+        tampilkanHasil(currentResult);
+        document.getElementById('loading').classList.add('hidden');
+      }, 500);
+    });
+
+    document.getElementById('simpan-btn').addEventListener('click', async () => {
+      if (!currentResult) return;
+
+      if (currentRecordCount >= 999) {
+        const warningDiv = document.createElement('div');
+        warningDiv.className = 'p-3 rounded-lg mt-4 text-center';
+        warningDiv.style.backgroundColor = '#fef3c7';
+        warningDiv.style.color = '#92400e';
+        warningDiv.textContent = 'Maksimum 999 data tercapai. Hapus beberapa data terlebih dahulu.';
+        document.getElementById('hasil').appendChild(warningDiv);
+        setTimeout(() => warningDiv.remove(), 3000);
+        return;
+      }
+
+      const simpanBtn = document.getElementById('simpan-btn');
+      simpanBtn.disabled = true;
+      simpanBtn.textContent = 'Menyimpan...';
+
+      const pola2D = hitungPola2D(currentResult.kepalaHasilNum, currentResult.ekorHasilNum);
+      const polaString = pola2D.map((baris, i) => `Baris ${i+1}: ${baris.join(' ')}`).join(' | ');
+
+      const result = await window.dataSdk.create({
+        tanggal: currentResult.tanggal,
+        angka_keluar: currentResult.angkaKeluar,
+        angka_mati_1: currentResult.ring1,
+        angka_mati_2: currentResult.ring2,
+        angka_hidup: currentResult.angkaHidup,
+        pola_kepala: polaString,
+        created_at: new Date().toISOString()
+      });
+
+      if (result.isOk) {
+        simpanBtn.textContent = 'Tersimpan!';
+        setTimeout(() => {
+          simpanBtn.disabled = false;
+          simpanBtn.textContent = 'Simpan Hasil';
+        }, 2000);
+      } else {
+        simpanBtn.disabled = false;
+        simpanBtn.textContent = 'Simpan Hasil';
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'p-3 rounded-lg mt-4 text-center';
+        errorDiv.style.backgroundColor = '#fee2e2';
+        errorDiv.style.color = '#991b1b';
+        errorDiv.textContent = 'Gagal menyimpan data';
+        document.getElementById('hasil').appendChild(errorDiv);
+        setTimeout(() => errorDiv.remove(), 3000);
+      }
+    });
+
+    async function init() {
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange,
+          mapToCapabilities: (config) => ({
+            recolorables: [
+              {
+                get: () => config.background_color || defaultConfig.background_color,
+                set: (value) => {
+                  config.background_color = value;
+                  window.elementSdk.setConfig({ background_color: value });
+                }
+              },
+              {
+                get: () => config.card_color || defaultConfig.card_color,
+                set: (value) => {
+                  config.card_color = value;
+                  window.elementSdk.setConfig({ card_color: value });
+                }
+              },
+              {
+                get: () => config.text_color || defaultConfig.text_color,
+                set: (value) => {
+                  config.text_color = value;
+                  window.elementSdk.setConfig({ text_color: value });
+                }
+              },
+              {
+                get: () => config.primary_color || defaultConfig.primary_color,
+                set: (value) => {
+                  config.primary_color = value;
+                  window.elementSdk.setConfig({ primary_color: value });
+                }
+              },
+              {
+                get: () => config.accent_color || defaultConfig.accent_color,
+                set: (value) => {
+                  config.accent_color = value;
+                  window.elementSdk.setConfig({ accent_color: value });
+                }
+              }
+            ],
+            borderables: [],
+            fontEditable: {
+              get: () => config.font_family || defaultConfig.font_family,
+              set: (value) => {
+                config.font_family = value;
+                window.elementSdk.setConfig({ font_family: value });
+              }
+            },
+            fontSizeable: {
+              get: () => config.font_size || defaultConfig.font_size,
+              set: (value) => {
+                config.font_size = value;
+                window.elementSdk.setConfig({ font_size: value });
+              }
+            }
+          }),
+          mapToEditPanelValues: (config) => new Map([
+            ['app_title', config.app_title || defaultConfig.app_title],
+            ['subtitle_text', config.subtitle_text || defaultConfig.subtitle_text]
+          ])
+        });
+      }
+
+      if (window.dataSdk) {
+        const initResult = await window.dataSdk.init(dataHandler);
+        if (!initResult.isOk) {
+          console.error('Failed to initialize data SDK');
+        }
+      }
+
+      await onConfigChange(defaultConfig);
+    }
+
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99bb4678d4e19b91',t:'MTc2MjY2OTk3MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
