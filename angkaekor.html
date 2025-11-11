@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="id">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Pangkas Angka</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    html {
+      height: 100%;
+    }
+    .result-card {
+      transition: all 0.3s ease;
+    }
+    .result-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="min-h-full">
+  <div class="min-h-full p-6" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+   <div class="max-w-4xl mx-auto"><!-- Header -->
+    <div class="text-center mb-8">
+     <h1 id="app-title" class="text-4xl font-bold text-white mb-2">Sistem Pangkas Angka</h1>
+     <p id="subtitle" class="text-xl text-white opacity-90">Masukkan ekor untuk memangkas angka</p>
+    </div><!-- Input Card -->
+    <div class="bg-white rounded-2xl shadow-2xl p-8 mb-6">
+     <div class="mb-6"><label for="ekor-input" class="block text-lg font-semibold text-gray-700 mb-3">Masukkan Ekor (0-9)</label> <input type="number" id="ekor-input" min="0" max="9" class="w-full px-6 py-4 text-2xl font-bold text-center border-2 border-purple-300 rounded-xl focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-200 transition-all" placeholder="0-9">
+     </div>
+     <div class="flex gap-4 mb-6"><button id="process-btn" class="flex-1 px-8 py-4 text-lg font-bold text-white rounded-xl transition-all shadow-lg hover:shadow-xl" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"> Pangkas Angka </button> <button id="reset-btn" class="px-8 py-4 text-lg font-bold text-gray-700 bg-gray-200 rounded-xl hover:bg-gray-300 transition-all"> Reset </button>
+     </div><!-- Filter Section -->
+     <div id="filter-section" class="hidden border-t-2 border-gray-200 pt-6">
+      <h3 class="text-xl font-bold text-gray-800 mb-4">🔍 Filter Angka</h3><!-- Filter Angka Main -->
+      <div class="mb-6"><label for="angka-main-filter" class="block text-base font-semibold text-gray-700 mb-2">Filter Angka Main (Kepala/Ekor)</label> <textarea id="angka-main-filter" rows="5" class="w-full px-4 py-3 border-2 border-purple-300 rounded-xl focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-200 transition-all font-mono text-xl" placeholder="Baris 1: 12345
+Baris 2: 678
+Baris 3: 09
+(Setiap baris akan dipangkas otomatis)"></textarea>
+       <p class="text-sm text-gray-500 mt-1">Setiap baris akan dipangkas otomatis. Tulis angka langsung tanpa koma. Filter berdasarkan kepala atau ekor.</p>
+      </div><!-- Filter Shio Main -->
+      <div class="mb-6"><label for="shio-result-filter" class="block text-base font-semibold text-gray-700 mb-2">Filter Shio Result (1-12)</label> <input type="number" id="shio-result-filter" min="1" max="12" class="w-full px-4 py-3 border-2 border-purple-300 rounded-xl focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-200 transition-all text-center font-bold text-xl" placeholder="Masukkan Shio Result (1-12)">
+       <p class="text-sm text-gray-500 mt-1">Filter 2D berdasarkan shio main yang sesuai dengan shio result.</p>
+      </div><!-- Filter Ekor Mati -->
+      <div class="mb-6"><label for="ekor-hidup-filter" class="block text-base font-semibold text-gray-700 mb-2">Filter Ekor Hidup</label> <input type="text" id="ekor-hidup-filter" class="w-full px-4 py-3 border-2 border-purple-300 rounded-xl focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-200 transition-all text-center font-mono text-xl" placeholder="Contoh: 0,1,2,3,4">
+       <p class="text-sm text-gray-500 mt-1">Masukkan ekor hidup (pisahkan dengan koma). Sistem akan otomatis membuang ekor mati dari hasil 2D, 3D, dan 4D.</p>
+      </div><!-- Filter AS -->
+      <div class="mb-6"><label for="as-filter" class="block text-base font-semibold text-gray-700 mb-2">Filter AS (Kepala + Ekor)</label> <textarea id="as-filter" rows="5" class="w-full px-4 py-3 border-2 border-purple-300 rounded-xl focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-200 transition-all font-mono text-xl" placeholder="Baris 1: 12345
+Baris 2: 678
+Baris 3: 09
+(Setiap baris akan dipangkas otomatis)"></textarea>
+       <p class="text-sm text-gray-500 mt-1">Setiap baris akan dipangkas otomatis. Tulis angka langsung tanpa koma. Filter berdasarkan jumlah kepala + ekor.</p>
+      </div><!-- AS BBFS Selector -->
+      <div class="mb-6"><label for="as-bbfs-select" class="block text-base font-semibold text-gray-700 mb-2">Pilih AS untuk BBFS</label> <select id="as-bbfs-select" class="w-full px-4 py-3 border-2 border-purple-300 rounded-xl focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-200 transition-all text-center font-bold text-xl bg-white"> <option value="">-- Pilih AS --</option> <option value="0">AS 0 → BBFS: 34506789</option> <option value="1">AS 1 → BBFS: 23456790</option> <option value="2">AS 2 → BBFS: 12345680</option> <option value="3">AS 3 → BBFS: 12356789</option> <option value="4">AS 4 → BBFS: 23457890</option> <option value="5">AS 5 → BBFS: 12357890</option> <option value="6">AS 6 → BBFS: 13467809</option> <option value="7">AS 7 → BBFS: 34567890</option> <option value="8">AS 8 → BBFS: 12567890</option> <option value="9">AS 9 → BBFS: 23467890</option> </select>
+       <div id="bbfs-display" class="hidden mt-3 p-4 bg-purple-50 rounded-xl">
+        <div class="text-sm font-semibold text-purple-600 mb-1">
+         BBFS Terpilih:
+        </div>
+        <div id="bbfs-value" class="text-2xl font-bold text-purple-900 font-mono"></div>
+       </div>
+       <p class="text-sm text-gray-500 mt-1">Pilih AS untuk menampilkan dan memfilter berdasarkan BBFS yang sesuai.</p>
+      </div>
+     </div>
+    </div><!-- Results Container -->
+    <div id="results-container" class="hidden"><!-- Reference Data Card -->
+     <div class="bg-white rounded-2xl shadow-2xl p-6 mb-6">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">📊 Data Referensi</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+       <div class="bg-purple-50 rounded-xl p-4">
+        <div class="text-sm font-semibold text-purple-600 mb-1">
+         ANGKA MAIN 1
+        </div>
+        <div id="ref-main1" class="text-2xl font-bold text-purple-900"></div>
+       </div>
+       <div class="bg-purple-50 rounded-xl p-4">
+        <div class="text-sm font-semibold text-purple-600 mb-1">
+         ANGKA MAIN 2
+        </div>
+        <div id="ref-main2" class="text-2xl font-bold text-purple-900"></div>
+       </div>
+       <div class="bg-purple-50 rounded-xl p-4">
+        <div class="text-sm font-semibold text-purple-600 mb-1">
+         CRASS
+        </div>
+        <div id="ref-crass" class="text-2xl font-bold text-purple-900"></div>
+       </div>
+      </div>
+     </div><!-- 2D Results -->
+     <div class="bg-white rounded-2xl shadow-2xl p-6 mb-6 result-card">
+      <div class="flex justify-between items-center mb-4">
+       <h2 class="text-2xl font-bold text-gray-800">🎯 Hasil Pangkas 2D</h2>
+       <div class="flex gap-3 items-center"><span id="count-2d" class="text-lg font-bold text-purple-600 bg-purple-100 px-4 py-2 rounded-lg"></span> <button id="copy-2d" class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-all shadow-md hover:shadow-lg"> 📋 Salin </button>
+       </div>
+      </div>
+      <div id="result-2d" class="font-mono text-lg leading-relaxed text-gray-800"></div>
+     </div><!-- 3D Results -->
+     <div class="bg-white rounded-2xl shadow-2xl p-6 mb-6 result-card">
+      <div class="flex justify-between items-center mb-4">
+       <h2 class="text-2xl font-bold text-gray-800">🎲 Hasil Pangkas 3D</h2>
+       <div class="flex gap-3 items-center"><span id="count-3d" class="text-lg font-bold text-purple-600 bg-purple-100 px-4 py-2 rounded-lg"></span> <button id="copy-3d" class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-all shadow-md hover:shadow-lg"> 📋 Salin </button>
+       </div>
+      </div>
+      <div id="result-3d" class="font-mono text-lg leading-relaxed text-gray-800"></div>
+     </div><!-- 4D Results -->
+     <div class="bg-white rounded-2xl shadow-2xl p-6 result-card">
+      <div class="flex justify-between items-center mb-4">
+       <h2 class="text-2xl font-bold text-gray-800">🎰 Hasil Pangkas 4D</h2>
+       <div class="flex gap-3 items-center"><span id="count-4d" class="text-lg font-bold text-purple-600 bg-purple-100 px-4 py-2 rounded-lg"></span> <button id="copy-4d" class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-all shadow-md hover:shadow-lg"> 📋 Salin </button>
+       </div>
+      </div>
+      <div id="result-4d" class="font-mono text-lg leading-relaxed text-gray-800"></div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    const defaultConfig = {
+      app_title: "Sistem Pangkas Angka",
+      subtitle: "Masukkan ekor untuk memangkas angka",
+      process_button: "Pangkas Angka",
+      reset_button: "Reset",
+      primary_color: "#667eea",
+      secondary_color: "#ffffff",
+      text_color: "#1f2937",
+      button_text_color: "#ffffff",
+      accent_color: "#764ba2",
+      font_family: "system-ui",
+      font_size: 16
+    };
+
+    const referenceData = {
+      1: { main1: "240157", main2: "678901", crass: "107" },
+      2: { main1: "680135", main2: "789012", crass: "801" },
+      3: { main1: "246379", main2: "890123", crass: "239" },
+      4: { main1: "480357", main2: "901234", crass: "340" },
+      5: { main1: "468159", main2: "012345", crass: "145" },
+      6: { main1: "260579", main2: "123456", crass: "256" },
+      7: { main1: "680137", main2: "234567", crass: "367" },
+      8: { main1: "248179", main2: "345678", crass: "478" },
+      9: { main1: "280359", main2: "456789", crass: "589" },
+      0: { main1: "460139", main2: "567890", crass: "906" }
+    };
+
+    const shioData = {
+      1: [6, 11, 2, 4, 9],
+      2: [6, 8, 12, 7, 10, 5],
+      3: [8, 10, 1, 7, 9, 4, 6, 11],
+      4: [2, 8, 10, 1, 9, 12, 7],
+      5: [12, 7, 9, 11, 8, 1],
+      6: [4, 12, 1, 11, 2, 7],
+      7: [2, 4, 12, 1, 5, 9, 10],
+      8: [2, 6, 1, 3, 4, 9, 11],
+      9: [2, 3, 4, 7, 11, 1],
+      10: [2, 3, 4, 5, 8, 1],
+      11: [3, 4, 5, 9, 2, 7, 12],
+      12: [5, 6, 7, 9, 10, 3, 8]
+    };
+
+    const asBBFSData = {
+      1: "23456790",
+      2: "12345680",
+      3: "12356789",
+      4: "23457890",
+      5: "12357890",
+      6: "13467809",
+      7: "34567890",
+      8: "12567890",
+      9: "23467890",
+      0: "34506789"
+    };
+
+    let currentCombinations = {
+      '2d': [],
+      '3d': [],
+      '4d': []
+    };
+
+    function generateCombinations(digits, length) {
+      const results = [];
+      
+      function combine(current) {
+        if (current.length === length) {
+          results.push(current);
+          return;
+        }
+        for (let digit of digits) {
+          combine(current + digit);
+        }
+      }
+      
+      combine("");
+      return results;
+    }
+
+    function getShioFromNumber(number) {
+      const num = parseInt(number);
+      const shio = num % 12;
+      return shio === 0 ? 12 : shio;
+    }
+
+    function filterByAngkaMain(combinations, angkaMainStr) {
+      if (!angkaMainStr || angkaMainStr.trim() === '') {
+        return combinations;
+      }
+
+      const lines = angkaMainStr.split('\n').filter(line => line.trim() !== '');
+      
+      if (lines.length === 0) {
+        return combinations;
+      }
+
+      let currentResults = combinations;
+      
+      for (let line of lines) {
+        const cleanLine = line.trim().replace(/[^0-9]/g, '');
+        const angkaMainArray = cleanLine.split('');
+        
+        if (angkaMainArray.length > 0) {
+          currentResults = currentResults.filter(combo => {
+            if (combo.length < 2) return false;
+            
+            let kepala, ekor;
+            
+            if (combo.length === 2) {
+              kepala = combo[0];
+              ekor = combo[1];
+            } else if (combo.length === 3) {
+              kepala = combo[1];
+              ekor = combo[2];
+            } else if (combo.length === 4) {
+              kepala = combo[2];
+              ekor = combo[3];
+            }
+            
+            return angkaMainArray.includes(kepala) || angkaMainArray.includes(ekor);
+          });
+        }
+      }
+      
+      return currentResults;
+    }
+
+    function filterByShio(combinations, shioResult) {
+      if (!shioResult || shioResult < 1 || shioResult > 12) {
+        return combinations;
+      }
+
+      const shioMainArray = shioData[shioResult];
+      
+      return combinations.filter(combo => {
+        if (combo.length < 2) return false;
+        
+        const number = parseInt(combo);
+        const shio = getShioFromNumber(number);
+        
+        return shioMainArray.includes(shio);
+      });
+    }
+
+    function filterByEkorHidup(combinations, ekorHidupStr) {
+      if (!ekorHidupStr || ekorHidupStr.trim() === '') {
+        return combinations;
+      }
+
+      const ekorHidupArray = ekorHidupStr.split(',').map(s => s.trim()).filter(s => s !== '');
+      
+      if (ekorHidupArray.length === 0) {
+        return combinations;
+      }
+
+      return combinations.filter(combo => {
+        if (combo.length < 2) return false;
+        
+        const ekor = combo[combo.length - 1];
+        
+        return ekorHidupArray.includes(ekor);
+      });
+    }
+
+    function filterByAS(combinations, asStr) {
+      if (!asStr || asStr.trim() === '') {
+        return combinations;
+      }
+
+      const lines = asStr.split('\n').filter(line => line.trim() !== '');
+      
+      if (lines.length === 0) {
+        return combinations;
+      }
+
+      let currentResults = combinations;
+      
+      for (let line of lines) {
+        const cleanLine = line.trim().replace(/[^0-9]/g, '');
+        const asArray = cleanLine.split('');
+        
+        if (asArray.length > 0) {
+          currentResults = currentResults.filter(combo => {
+            if (combo.length < 2) return false;
+            
+            let kepala, ekor;
+            
+            if (combo.length === 2) {
+              kepala = parseInt(combo[0]);
+              ekor = parseInt(combo[1]);
+            } else if (combo.length === 3) {
+              kepala = parseInt(combo[1]);
+              ekor = parseInt(combo[2]);
+            } else if (combo.length === 4) {
+              kepala = parseInt(combo[2]);
+              ekor = parseInt(combo[3]);
+            }
+            
+            const as = kepala + ekor;
+            
+            return asArray.includes(as.toString());
+          });
+        }
+      }
+      
+      return currentResults;
+    }
+
+    function filterByASBBFS(combinations, asValue) {
+      if (asValue === '' || asValue === null || asValue === undefined) {
+        return combinations;
+      }
+
+      const bbfsDigits = asBBFSData[asValue].split('');
+      
+      return combinations.filter(combo => {
+        for (let digit of combo) {
+          if (!bbfsDigits.includes(digit)) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
+
+    function processEkor() {
+      const ekorInput = document.getElementById('ekor-input');
+      const ekor = ekorInput.value;
+      
+      if (ekor === '' || ekor < 0 || ekor > 9) {
+        return;
+      }
+
+      const data = referenceData[ekor];
+      const allDigits = [...new Set((data.main1 + data.main2 + data.crass).split(''))].sort();
+
+      document.getElementById('ref-main1').textContent = data.main1;
+      document.getElementById('ref-main2').textContent = data.main2;
+      document.getElementById('ref-crass').textContent = data.crass;
+
+      currentCombinations['2d'] = generateCombinations(allDigits, 2);
+      currentCombinations['3d'] = generateCombinations(allDigits, 3);
+      currentCombinations['4d'] = generateCombinations(allDigits, 4);
+
+      displayResults('result-2d', currentCombinations['2d'], 'count-2d', 10);
+      displayResults('result-3d', currentCombinations['3d'], 'count-3d', 8);
+      displayResults('result-4d', currentCombinations['4d'], 'count-4d', 8);
+
+      document.getElementById('results-container').classList.remove('hidden');
+      document.getElementById('filter-section').classList.remove('hidden');
+    }
+
+    function applyFilters() {
+      const angkaMainFilter = document.getElementById('angka-main-filter').value;
+      const shioResultFilter = parseInt(document.getElementById('shio-result-filter').value);
+      const ekorHidupFilter = document.getElementById('ekor-hidup-filter').value;
+      const asFilter = document.getElementById('as-filter').value;
+      const asBBFSFilter = document.getElementById('as-bbfs-select').value;
+
+      let filtered2D = [...currentCombinations['2d']];
+      let filtered3D = [...currentCombinations['3d']];
+      let filtered4D = [...currentCombinations['4d']];
+
+      if (angkaMainFilter && angkaMainFilter.trim() !== '') {
+        filtered2D = filterByAngkaMain(filtered2D, angkaMainFilter);
+        filtered3D = filterByAngkaMain(filtered3D, angkaMainFilter);
+        filtered4D = filterByAngkaMain(filtered4D, angkaMainFilter);
+      }
+
+      if (shioResultFilter >= 1 && shioResultFilter <= 12) {
+        filtered2D = filterByShio(filtered2D, shioResultFilter);
+      }
+
+      if (ekorHidupFilter && ekorHidupFilter.trim() !== '') {
+        filtered2D = filterByEkorHidup(filtered2D, ekorHidupFilter);
+        filtered3D = filterByEkorHidup(filtered3D, ekorHidupFilter);
+        filtered4D = filterByEkorHidup(filtered4D, ekorHidupFilter);
+      }
+
+      if (asFilter && asFilter.trim() !== '') {
+        filtered2D = filterByAS(filtered2D, asFilter);
+        filtered3D = filterByAS(filtered3D, asFilter);
+        filtered4D = filterByAS(filtered4D, asFilter);
+      }
+
+      if (asBBFSFilter !== '') {
+        filtered2D = filterByASBBFS(filtered2D, asBBFSFilter);
+        filtered3D = filterByASBBFS(filtered3D, asBBFSFilter);
+        filtered4D = filterByASBBFS(filtered4D, asBBFSFilter);
+      }
+
+      displayResults('result-2d', filtered2D, 'count-2d', 10);
+      displayResults('result-3d', filtered3D, 'count-3d', 8);
+      displayResults('result-4d', filtered4D, 'count-4d', 8);
+    }
+
+    function displayResults(containerId, combinations, countId, itemsPerRow) {
+      const container = document.getElementById(containerId);
+      const countElement = document.getElementById(countId);
+      container.innerHTML = '';
+      
+      countElement.textContent = `Jumlah: ${combinations.length}`;
+      
+      let output = '';
+      for (let i = 0; i < combinations.length; i++) {
+        output += combinations[i];
+        if ((i + 1) % itemsPerRow === 0) {
+          output += '\n';
+        } else if (i < combinations.length - 1) {
+          output += '*';
+        }
+      }
+      
+      container.textContent = output;
+    }
+
+    function resetForm() {
+      document.getElementById('ekor-input').value = '';
+      document.getElementById('results-container').classList.add('hidden');
+    }
+
+    async function onConfigChange(config) {
+      const baseSize = config.font_size || defaultConfig.font_size;
+      const customFont = config.font_family || defaultConfig.font_family;
+      const baseFontStack = 'system-ui, -apple-system, sans-serif';
+      const fontFamily = `${customFont}, ${baseFontStack}`;
+
+      document.getElementById('app-title').textContent = config.app_title || defaultConfig.app_title;
+      document.getElementById('subtitle').textContent = config.subtitle || defaultConfig.subtitle;
+      document.getElementById('process-btn').textContent = config.process_button || defaultConfig.process_button;
+      document.getElementById('reset-btn').textContent = config.reset_button || defaultConfig.reset_button;
+
+      document.getElementById('app-title').style.fontFamily = fontFamily;
+      document.getElementById('app-title').style.fontSize = `${baseSize * 2}px`;
+      document.getElementById('subtitle').style.fontFamily = fontFamily;
+      document.getElementById('subtitle').style.fontSize = `${baseSize * 1.25}px`;
+
+      document.body.style.fontFamily = fontFamily;
+      document.body.style.fontSize = `${baseSize}px`;
+    }
+
+    document.getElementById('process-btn').addEventListener('click', (e) => {
+      e.preventDefault();
+      processEkor();
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', (e) => {
+      e.preventDefault();
+      resetForm();
+    });
+
+    document.getElementById('ekor-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        processEkor();
+      }
+    });
+
+    function copyToClipboard(elementId, buttonId) {
+      const element = document.getElementById(elementId);
+      const button = document.getElementById(buttonId);
+      const text = element.textContent;
+      
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = button.textContent;
+        button.textContent = '✓ Tersalin!';
+        button.style.backgroundColor = '#10b981';
+        
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.style.backgroundColor = '';
+        }, 2000);
+      }).catch(() => {
+        const tempInput = document.createElement('textarea');
+        tempInput.value = text;
+        tempInput.style.position = 'fixed';
+        tempInput.style.opacity = '0';
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+        
+        const originalText = button.textContent;
+        button.textContent = '✓ Tersalin!';
+        button.style.backgroundColor = '#10b981';
+        
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.style.backgroundColor = '';
+        }, 2000);
+      });
+    }
+
+    document.getElementById('copy-2d').addEventListener('click', (e) => {
+      e.preventDefault();
+      copyToClipboard('result-2d', 'copy-2d');
+    });
+
+    document.getElementById('copy-3d').addEventListener('click', (e) => {
+      e.preventDefault();
+      copyToClipboard('result-3d', 'copy-3d');
+    });
+
+    document.getElementById('copy-4d').addEventListener('click', (e) => {
+      e.preventDefault();
+      copyToClipboard('result-4d', 'copy-4d');
+    });
+
+    document.getElementById('angka-main-filter').addEventListener('input', (e) => {
+      applyFilters();
+    });
+
+    document.getElementById('shio-result-filter').addEventListener('input', (e) => {
+      applyFilters();
+    });
+
+    document.getElementById('ekor-hidup-filter').addEventListener('input', (e) => {
+      applyFilters();
+    });
+
+    document.getElementById('as-filter').addEventListener('input', (e) => {
+      applyFilters();
+    });
+
+    document.getElementById('as-bbfs-select').addEventListener('change', (e) => {
+      const selectedAS = e.target.value;
+      const bbfsDisplay = document.getElementById('bbfs-display');
+      const bbfsValue = document.getElementById('bbfs-value');
+      
+      if (selectedAS !== '') {
+        bbfsValue.textContent = asBBFSData[selectedAS];
+        bbfsDisplay.classList.remove('hidden');
+      } else {
+        bbfsDisplay.classList.add('hidden');
+      }
+      
+      applyFilters();
+    });
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            {
+              get: () => config.primary_color || defaultConfig.primary_color,
+              set: (value) => {
+                config.primary_color = value;
+                window.elementSdk.setConfig({ primary_color: value });
+              }
+            },
+            {
+              get: () => config.secondary_color || defaultConfig.secondary_color,
+              set: (value) => {
+                config.secondary_color = value;
+                window.elementSdk.setConfig({ secondary_color: value });
+              }
+            },
+            {
+              get: () => config.text_color || defaultConfig.text_color,
+              set: (value) => {
+                config.text_color = value;
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: {
+            get: () => config.font_family || defaultConfig.font_family,
+            set: (value) => {
+              config.font_family = value;
+              window.elementSdk.setConfig({ font_family: value });
+            }
+          },
+          fontSizeable: {
+            get: () => config.font_size || defaultConfig.font_size,
+            set: (value) => {
+              config.font_size = value;
+              window.elementSdk.setConfig({ font_size: value });
+            }
+          }
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ["app_title", config.app_title || defaultConfig.app_title],
+          ["subtitle", config.subtitle || defaultConfig.subtitle],
+          ["process_button", config.process_button || defaultConfig.process_button],
+          ["reset_button", config.reset_button || defaultConfig.reset_button]
+        ])
+      });
+    }
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99be02293720d738',t:'MTc2MjY5ODYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
